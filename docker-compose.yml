@@ -104,6 +104,13 @@ services:
       args:
         DOCKER_BUILDKIT: 1
     restart: always
+    environment:
+      API_BASE_URL: "http://api:8000"
+      LIVE_BASE_PATH: "/live"
+      LIVE_SERVER_SECRET_KEY: "REDACTED"
+      REDIS_URL: "redis://plane-redis:6379/"
+    depends_on:
+      - plane-redis
 
   plane-db:
     container_name: plane-db
