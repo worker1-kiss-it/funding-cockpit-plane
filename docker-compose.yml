@@ -45,6 +45,10 @@ services:
     command: ./bin/docker-entrypoint-api.sh
     env_file:
       - ./apps/api/.env
+    environment:
+      KB_PATH: /app/kb
+    volumes:
+      - /git/funding-cockpit/kb:/app/kb:ro
     depends_on:
       - plane-db
       - plane-redis

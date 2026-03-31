@@ -16,6 +16,9 @@ from .views import (
     MilestoneListCreateView,
     MilestoneDetailView,
 )
+from .views_kb import KBTreeView, KBFileView, KBSearchView, KBRawFileView
+from .views_chat import ChatSendView, ChatHistoryView
+from .views_projects import FundingProjectsView
 
 urlpatterns = [
     # Pipeline & Dashboard
@@ -94,5 +97,43 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/funding/<uuid:opp_id>/milestones/<uuid:pk>/",
         MilestoneDetailView.as_view(),
         name="funding-milestone-detail",
+    ),
+    # Knowledge Base
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/funding/kb/tree/",
+        KBTreeView.as_view(),
+        name="funding-kb-tree",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/funding/kb/file/",
+        KBFileView.as_view(),
+        name="funding-kb-file",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/funding/kb/file/raw/",
+        KBRawFileView.as_view(),
+        name="funding-kb-file-raw",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/funding/kb/search/",
+        KBSearchView.as_view(),
+        name="funding-kb-search",
+    ),
+    # AI Chat
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/funding/chat/send/",
+        ChatSendView.as_view(),
+        name="funding-chat-send",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/funding/chat/history/",
+        ChatHistoryView.as_view(),
+        name="funding-chat-history",
+    ),
+    # Projects (from KB _index.md files)
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/funding/kb/projects/",
+        FundingProjectsView.as_view(),
+        name="funding-projects",
     ),
 ]
