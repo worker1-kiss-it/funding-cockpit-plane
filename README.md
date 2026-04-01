@@ -1,165 +1,271 @@
-<br /><br />
+# Funding Cockpit (Plane-Based)
 
-<p align="center">
-<a href="https://plane.so">
-  <img src="https://media.docs.plane.so/logo/plane_github_readme.png" alt="Plane Logo" width="400">
-</a>
-</p>
-<p align="center"><b>Modern project management for all teams</b></p>
+Central management platform for EU funding opportunities, built on top of [Plane](https://plane.so/) (open-source project management). Extends Plane with funding-specific models, a knowledge base, AI chat, partner/consortium management, and proposal tracking.
 
-<p align="center">
-    <a href="https://plane.so/"><b>Website</b></a> •
-    <a href="https://forum.plane.so"><b>Forum</b></a> •
-    <a href="https://twitter.com/planepowers"><b>Twitter</b></a> •
-    <a href="https://docs.plane.so/"><b>Documentation</b></a>
-</p>
+## Live URLs
 
-<p>
-    <a href="https://app.plane.so/#gh-light-mode-only" target="_blank">
-      <img
-        src="https://media.docs.plane.so/GitHub-readme/github-top.webp"
-        alt="Plane Screens"
-        width="100%"
-      />
-    </a>
-</p>
+| Environment | URL |
+|-------------|-----|
+| **Production App** | https://plane.46.225.111.79.nip.io/ |
+| **Admin Panel** | https://plane.46.225.111.79.nip.io/god-mode/ |
+| **Old Funding Cockpit** | https://funding.kiss-it.io/ (FastAPI, still running) |
 
-Meet [Plane](https://plane.so/), an open-source project management tool to track issues, run ~sprints~ cycles, and manage product roadmaps without the chaos of managing the tool itself. 🧘‍♀️
+## Login
 
-> Plane is evolving every day. Your suggestions, ideas, and reported bugs help us immensely. Do not hesitate to join in the conversation on [Forum](https://forum.plane.so) or raise a GitHub issue. We read everything and respond to most.
+Authentication is via **magic link** (email verification code) -- no passwords. Configured users:
 
-## 🚀 Installation
+- `g.kiss@kiss-it.io` (Gergo Kiss) -- instance admin
+- `r.hasan@kiss-it.io` (Raquibul Hasan)
+- `shafi@mediprospects.ai` (Shafi Choudhury)
 
-Getting started with Plane is simple. Choose the setup that works best for you:
+SMTP is configured via `smtp.easyname.eu` (sender: `worker1.kiss@kiss-it.io`).
 
-- **Plane Cloud**
-  Sign up for a free account on [Plane Cloud](https://app.plane.so)—it's the fastest way to get up and running without worrying about infrastructure.
+## Architecture
 
-- **Self-host Plane**
-  Prefer full control over your data and infrastructure? Install and run Plane on your own servers. Follow our detailed [deployment guides](https://developers.plane.so/self-hosting/overview) to get started.
+```
+nginx (ports 80/443, Let's Encrypt SSL)
+  -> Caddy reverse proxy (port 8800, internal)
+       -> web        (React/Next.js frontend, port 3000)
+       -> admin      (Admin dashboard, port 3000)
+       -> space      (Public space, port 3000)
+       -> api        (Django REST API, port 8000)
+       -> live       (WebSocket collaboration, port 3000)
+       -> plane-minio (S3-compatible file storage, port 9000)
 
-| Installation methods | Docs link                                                                                                                                                                               |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Docker               | [![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)](https://developers.plane.so/self-hosting/methods/docker-compose)         |
-| Kubernetes           | [![Kubernetes](https://img.shields.io/badge/kubernetes-%23326ce5.svg?style=for-the-badge&logo=kubernetes&logoColor=white)](https://developers.plane.so/self-hosting/methods/kubernetes) |
+api -> plane-db     (PostgreSQL 15.7)
+api -> plane-redis  (Valkey/Redis 7.2.11)
+api -> plane-mq     (RabbitMQ 3.13.6)
+api -> /app/kb      (Knowledge base volume, read-only mount from /git/funding-cockpit/kb)
+api -> OpenClaw     (AI chat gateway at 172.18.0.1:18789)
+```
 
-`Instance admins` can configure instance settings with [God mode](https://developers.plane.so/self-hosting/govern/instance-admin).
+## Tech Stack
 
-## 🌟 Features
+| Component | Technology |
+|-----------|-----------|
+| Backend | Python/Django 4.2 + Django REST Framework |
+| Frontend | React + TypeScript (Vite/React Router) |
+| Database | PostgreSQL 15.7 |
+| Cache | Redis (Valkey 7.2.11) |
+| Message Queue | RabbitMQ 3.13.6 |
+| File Storage | MinIO (S3-compatible) |
+| Reverse Proxy | Caddy (internal) + nginx (external, SSL) |
+| AI Chat | OpenClaw WebSocket gateway |
+| Auth | Magic link (email code, JWT sessions) |
 
-- **Work Items**
-  Efficiently create and manage tasks with a robust rich text editor that supports file uploads. Enhance organization and tracking by adding sub-properties and referencing related issues.
+## Comparison: Old vs New
 
-- **Cycles**
-  Maintain your team’s momentum with Cycles. Track progress effortlessly using burn-down charts and other insightful tools.
+| Feature | Old (FastAPI + Alpine.js) | New (Plane-Based) |
+|---------|--------------------------|-------------------|
+| **Pipeline/Kanban** | Custom 12-phase board | Plane's native board + custom 12 states |
+| **Calendar** | Custom calendar view | Plane's built-in calendar layout |
+| **Task Management** | None (opportunities only) | Full issues, subtasks, assignees, cycles, modules |
+| **Gantt/Timeline** | None | Plane's built-in timeline view |
+| **Spreadsheet View** | None | Plane's built-in spreadsheet layout |
+| **Knowledge Base** | Custom file tree browser | Mounted volume + custom API endpoints + Plane Pages |
+| **AI Chat** | WebSocket (OpenClaw) | REST API proxy (OpenClaw) |
+| **Activity Logging** | JSON activity_log field | Both Plane's native + FundingActivityLog model |
+| **Proposal Tracking** | None | Proposal model (draft -> review -> submitted -> accepted/rejected) |
+| **Partner Management** | None | Partner + ConsortiumMember models |
+| **Meeting Tracking** | None | Meeting model (internal, partner, info day, review, kickoff) |
+| **Implementation Milestones** | None | ImplementationMilestone model with deliverables |
+| **Multi-Tenant** | Single tenant | Workspace isolation (one per company) |
+| **Real-time Collaboration** | None | Plane's live server (WebSocket) |
+| **File Attachments** | Linked docs (path refs) | MinIO storage + linked docs preserved |
+| **Search** | Full-text .md/.txt | Full-text .md/.txt + Plane's native search |
+| **User Management** | Allowed emails list | Full RBAC (admin, member, guest) |
+| **Database** | JSON file (opportunities.json) | PostgreSQL |
+| **Deployment** | Single Docker container | 12 containers (docker-compose) |
 
-- **Modules**
-  Simplify complex projects by dividing them into smaller, manageable modules.
+## Data Migrated
 
-- **Views**
-  Customize your workflow by creating filters to display only the most relevant issues. Save and share these views with ease.
+| Data | Count | Notes |
+|------|-------|-------|
+| Opportunities | 160 (151 imported + 9 seed) | All phases, priorities, assignees preserved |
+| Activity Logs | 118 | Historical change tracking |
+| Linked Documents | 148 opportunities with 341 refs | Stored as JSON paths, resolved via KB endpoint |
+| KB Files | 418 files (125 MB) | Mounted read-only from old cockpit |
+| Projects (_index.md) | 18 across 3 categories | Full Match, ESR Only, Proposal Only |
+| Labels | 13 normalized from 34 type variants | Horizon Europe, Cascade, Digital Europe, etc. |
+| Pipeline States | 12 | Backlog -> Discovery -> ... -> Won/Rejected/Archived |
 
-- **Pages**
-  Capture and organize ideas using Plane Pages, complete with AI capabilities and a rich text editor. Format text, insert images, add hyperlinks, or convert your notes into actionable items.
+## Custom Funding Extension
 
-- **Analytics**
-  Access real-time insights across all your Plane data. Visualize trends, remove blockers, and keep your projects moving forward.
+Located in `apps/api/plane/funding/`. Registered in `INSTALLED_APPS` as `plane.funding`.
 
-## 🛠️ Local development
+### Models (`models.py`)
 
-See [CONTRIBUTING](./CONTRIBUTING.md)
+- **FundingOpportunity** -- 1:1 linked to Plane Issue. Fields: external_id, opportunity_type, budget, relevance (1-5), fit_notes, source, url, call_id, next_step, deadline, linked_docs (JSON), tags (JSON)
+- **FundingActivityLog** -- Change tracking per opportunity
+- **Proposal** -- Draft/review/submission tracking per opportunity
+- **Partner** -- Workspace-scoped partner directory (org type, country, contact, expertise)
+- **ConsortiumMember** -- Links partner to opportunity with role (coordinator, partner, subcontractor)
+- **Meeting** -- Meeting/call tracking per opportunity (internal, partner, info day, review, kickoff)
+- **ImplementationMilestone** -- Post-award deliverable tracking with status and due dates
 
-## ⚙️ Built with
+### API Endpoints (27 total)
 
-[![React Router](https://img.shields.io/badge/-React%20Router-CA4245?logo=react-router&style=for-the-badge&logoColor=white)](https://reactrouter.com/)
-[![Django](https://img.shields.io/badge/Django-092E20?style=for-the-badge&logo=django&logoColor=green)](https://www.djangoproject.com/)
-[![Node JS](https://img.shields.io/badge/node.js-339933?style=for-the-badge&logo=Node.js&logoColor=white)](https://nodejs.org/en)
+All under `/api/funding/`:
 
-## 📸 Screenshots
+**Pipeline & Dashboard:**
+```
+GET  /workspaces/{slug}/projects/{id}/funding/pipeline/
+GET  /workspaces/{slug}/projects/{id}/funding/dashboard/
+GET  /workspaces/{slug}/projects/{id}/funding/deadlines/
+GET|PATCH /workspaces/{slug}/projects/{id}/funding/{opp_id}/
+```
 
-  <p>
-    <a href="https://plane.so" target="_blank">
-      <img
-        src="https://media.docs.plane.so/GitHub-readme/github-work-items.webp"
-        alt="Plane Views"
-        width="100%"
-      />
-    </a>
-  </p>
-  <p>
-    <a href="https://plane.so" target="_blank">
-      <img
-        src="https://media.docs.plane.so/GitHub-readme/github-cycles.webp"
-        width="100%"
-      />
-    </a>
-  </p>
-  <p>
-    <a href="https://plane.so" target="_blank">
-      <img
-        src="https://media.docs.plane.so/GitHub-readme/github-modules.webp"
-        alt="Plane Cycles and Modules"
-        width="100%"
-      />
-    </a>
-  </p>
-  <p>
-    <a href="https://plane.so" target="_blank">
-      <img
-        src="https://media.docs.plane.so/GitHub-readme/github-views.webp"
-        alt="Plane Analytics"
-        width="100%"
-      />
-    </a>
-  </p>
-   <p>
-    <a href="https://plane.so" target="_blank">
-      <img
-        src="https://media.docs.plane.so/GitHub-readme/github-analytics.webp"
-        alt="Plane Pages"
-        width="100%"
-      />
-    </a>
-  </p>
-</p>
+**Proposals:**
+```
+GET|POST /workspaces/{slug}/projects/{id}/funding/{opp_id}/proposals/
+GET|PATCH|DELETE /workspaces/{slug}/projects/{id}/funding/{opp_id}/proposals/{pk}/
+```
 
-## 📝 Documentation
+**Partners (workspace-scoped):**
+```
+GET|POST /workspaces/{slug}/funding/partners/
+GET|PATCH|DELETE /workspaces/{slug}/funding/partners/{pk}/
+```
 
-Explore Plane's [product documentation](https://docs.plane.so/) and [developer documentation](https://developers.plane.so/) to learn about features, setup, and usage.
+**Consortium:**
+```
+GET|POST /workspaces/{slug}/projects/{id}/funding/{opp_id}/consortium/
+DELETE /workspaces/{slug}/projects/{id}/funding/{opp_id}/consortium/{pk}/
+```
 
-## ❤️ Community
+**Meetings:**
+```
+GET|POST /workspaces/{slug}/projects/{id}/funding/{opp_id}/meetings/
+GET|PATCH|DELETE /workspaces/{slug}/projects/{id}/funding/{opp_id}/meetings/{pk}/
+```
 
-Join the Plane community on [GitHub Discussions](https://github.com/orgs/makeplane/discussions) and our [Forum](https://forum.plane.so). We follow a [Code of conduct](https://github.com/makeplane/plane/blob/master/CODE_OF_CONDUCT.md) in all our community channels.
+**Milestones:**
+```
+GET|POST /workspaces/{slug}/projects/{id}/funding/{opp_id}/milestones/
+PATCH|DELETE /workspaces/{slug}/projects/{id}/funding/{opp_id}/milestones/{pk}/
+```
 
-Feel free to ask questions, report bugs, participate in discussions, share ideas, request features, or showcase your projects. We’d love to hear from you!
+**Knowledge Base:**
+```
+GET /workspaces/{slug}/projects/{id}/funding/kb/tree/
+GET /workspaces/{slug}/projects/{id}/funding/kb/file/?path=...
+GET /workspaces/{slug}/projects/{id}/funding/kb/file/raw/?path=...
+GET /workspaces/{slug}/projects/{id}/funding/kb/search/?q=...
+GET /workspaces/{slug}/projects/{id}/funding/kb/projects/
+```
 
-## 🛡️ Security
+**AI Chat:**
+```
+POST /workspaces/{slug}/projects/{id}/funding/chat/send/
+GET  /workspaces/{slug}/projects/{id}/funding/chat/history/
+```
 
-If you discover a security vulnerability in Plane, please report it responsibly instead of opening a public issue. We take all legitimate reports seriously and will investigate them promptly. See [Security policy](https://github.com/makeplane/plane/blob/master/SECURITY.md) for more info.
+## Management Commands
 
-To disclose any security issues, please email us at security@plane.so.
+```bash
+# Seed initial data (users, workspace, project, states, labels, 9 sample opportunities)
+python manage.py seed_funding_data
 
-## 🤝 Contributing
+# Import all opportunities from production JSON
+python manage.py import_opportunities --file /app/kb/opportunities.json --workspace funding-cockpit --project FUND
 
-There are many ways you can contribute to Plane:
+# Dry run (shows what would be imported)
+python manage.py import_opportunities --dry-run
 
-- Report [bugs](https://github.com/makeplane/plane/issues/new?assignees=srinivaspendem%2Cpushya22&labels=%F0%9F%90%9Bbug&projects=&template=--bug-report.yaml&title=%5Bbug%5D%3A+) or submit [feature requests](https://github.com/makeplane/plane/issues/new?assignees=srinivaspendem%2Cpushya22&labels=%E2%9C%A8feature&projects=&template=--feature-request.yaml&title=%5Bfeature%5D%3A+).
-- Review the [documentation](https://docs.plane.so/) and submit [pull requests](https://github.com/makeplane/docs) to improve it—whether it's fixing typos or adding new content.
-- Talk or write about Plane or any other ecosystem integration and [let us know](https://forum.plane.so)!
-- Show your support by upvoting [popular feature requests](https://github.com/makeplane/plane/issues).
+# Create a new tenant/company workspace
+python manage.py create_tenant --name "Company Name" --slug company-slug --admin admin@email.com
+```
 
-Please read [CONTRIBUTING.md](https://github.com/makeplane/plane/blob/master/CONTRIBUTING.md) for details on the process for submitting pull requests to us.
+## Multi-Tenant
 
-### Repo activity
+Each company gets its own **Plane workspace** with full data isolation. Users can belong to multiple workspaces and switch between them via the workspace dropdown.
 
-![Plane Repo Activity](https://repobeats.axiom.co/api/embed/2523c6ed2f77c082b7908c33e2ab208981d76c39.svg "Repobeats analytics image")
+To add a second company:
+```bash
+docker compose -p funding-plane exec api python manage.py create_tenant \
+  --name "Other Company" --slug other-company --admin user@other.com
+```
 
-### We couldn't have done this without you.
+This creates a workspace with the standard 12-phase pipeline, type labels, and a "EU Funding Pipeline" project.
 
-<a href="https://github.com/makeplane/plane/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=makeplane/plane" />
-</a>
+## Deployment
 
-## License
+```bash
+# Build and start all services
+docker compose -p funding-plane up -d --build
 
-This project is licensed under the [GNU Affero General Public License v3.0](https://github.com/makeplane/plane/blob/master/LICENSE.txt).
+# Check status
+docker compose -p funding-plane ps
+
+# View logs
+docker compose -p funding-plane logs -f api
+
+# Run migrations after model changes
+docker compose -p funding-plane exec api python manage.py makemigrations funding
+docker compose -p funding-plane exec api python manage.py migrate funding
+
+# Import data
+docker compose -p funding-plane exec api python manage.py import_opportunities
+```
+
+### Environment Files
+
+- `.env` -- Root env (PostgreSQL, Redis, RabbitMQ, MinIO credentials, ports)
+- `apps/api/.env` -- API env (database URL, SMTP, OpenClaw, base URLs, auth config)
+- `apps/web/.env` -- Frontend env (API base URL)
+- `apps/admin/.env`, `apps/space/.env`, `apps/live/.env` -- Service-specific env
+
+### Key Environment Variables
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `KB_PATH` | Knowledge base directory mount | `/app/kb` |
+| `OPENCLAW_API_URL` | AI chat gateway URL | `http://172.18.0.1:18789` |
+| `OPENCLAW_TOKEN` | AI chat auth token | (required) |
+| `OPENCLAW_SESSION_KEY` | Chat session identifier | `agent:main:webchat:funding-cockpit-chat` |
+| `EMAIL_HOST` | SMTP server for magic link | `smtp.easyname.eu` |
+| `EMAIL_HOST_USER` | SMTP username | `worker1.kiss@kiss-it.io` |
+| `SKIP_ENV_VAR` | Read config from env vars (0) or DB (1) | `0` |
+| `ENABLE_SIGNUP` | Allow new user registration | `1` |
+| `ENABLE_MAGIC_LINK_LOGIN` | Enable email code login | `1` |
+
+## Infrastructure
+
+- **Server:** Hetzner CX43 VPS (46.225.111.79)
+- **SSL:** Let's Encrypt via certbot, managed by nginx
+- **nginx config:** `/etc/nginx/sites-enabled/plane.46.225.111.79.nip.io`
+- **Docker project:** `funding-plane`
+- **KB data:** Mounted from `/git/funding-cockpit/kb` (shared with old cockpit, read-only)
+- **Old cockpit:** Still running at `funding-cockpit-app-1` on port 8101 (https://funding.kiss-it.io)
+
+## Repository Structure
+
+```
+apps/
+  api/                          # Django backend
+    plane/
+      funding/                  # Custom funding extension
+        models.py               # FundingOpportunity, Proposal, Partner, etc.
+        views.py                # Pipeline, Dashboard, CRUD views
+        views_kb.py             # Knowledge Base file serving
+        views_chat.py           # AI Chat (OpenClaw proxy)
+        views_projects.py       # Projects view (_index.md parser)
+        serializers.py          # DRF serializers
+        urls.py                 # All funding API routes
+        management/commands/
+          seed_funding_data.py  # Initial data seeding
+          import_opportunities.py # Full production data import
+          create_tenant.py      # Multi-tenant workspace setup
+        migrations/
+          0001_initial.py
+          0002_fundingopportunity_linked_docs_and_more.py
+  web/                          # React frontend (Plane UI)
+  admin/                        # Admin dashboard
+  space/                        # Public sharing
+  live/                         # Real-time collaboration (WebSocket)
+  proxy/                        # Caddy reverse proxy
+```
+
+## Based On
+
+[Plane](https://github.com/makeplane/plane) -- AGPL-3.0 licensed open-source project management.
