@@ -36,7 +36,13 @@ import { SidebarProjectsListItem } from "./projects-list-item";
 
 export const SidebarProjectsList = observer(function SidebarProjectsList() {
   // states
-  const [isAllProjectsListOpen, setIsAllProjectsListOpen] = useState(true);
+  const [isAllProjectsListOpen, setIsAllProjectsListOpen] = useState(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("isAllProjectsListOpen");
+      return stored !== null ? stored === "true" : false;
+    }
+    return false;
+  });
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false); // scroll animation state
   // refs

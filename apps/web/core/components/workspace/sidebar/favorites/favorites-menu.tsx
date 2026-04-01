@@ -49,7 +49,7 @@ export const SidebarFavoritesMenu = observer(function SidebarFavoritesMenu() {
   // translation
   const { t } = useTranslation();
   // local storage
-  const { setValue: toggleFavoriteMenu, storedValue } = useLocalStorage<boolean>(IS_FAVORITE_MENU_OPEN, false);
+  const { setValue: toggleFavoriteMenu, storedValue } = useLocalStorage<boolean>(IS_FAVORITE_MENU_OPEN, true);
   // derived values
   const isFavoriteMenuOpen = !!storedValue;
   // refs
