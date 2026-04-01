@@ -1,11 +1,15 @@
 /**
- * Copyright (c) 2023-present Plane Software, Inc. and contributors
- * SPDX-License-Identifier: AGPL-3.0-only
- * See the LICENSE file for details.
+ * Additional widget action buttons for funding cockpit.
+ * Adds a "Create Task" button next to "Add sub-work item", "Add relation", etc.
  */
 
+import { ListTodo } from "lucide-react";
+import { Button } from "@plane/propel/button";
 // plane types
 import type { TIssueServiceType, TWorkItemWidgets } from "@plane/types";
+import { FundingService } from "@/services/funding.service";
+
+const service = new FundingService();
 
 export type TWorkItemAdditionalWidgetActionButtonsProps = {
   disabled: boolean;
@@ -16,6 +20,24 @@ export type TWorkItemAdditionalWidgetActionButtonsProps = {
   workspaceSlug: string;
 };
 
-export function WorkItemAdditionalWidgetActionButtons(_props: TWorkItemAdditionalWidgetActionButtonsProps) {
-  return null;
+export function WorkItemAdditionalWidgetActionButtons(props: TWorkItemAdditionalWidgetActionButtonsProps) {
+  const { disabled, workspaceSlug, projectId, workItemId } = props;
+
+  const handleCreateTask = async () => {
+    const name = prompt("Task name:");
+    if (!name?.trim()) return;
+    try {
+      await service.createLinkedTask(workspaceSlug, projectId, workItemId, { name: name.trim() });
+      alert(`Task "${name.trim()}" created in Funding Tasks project with relation.`);
+    } catch {
+      alert("Failed to create task.");
+    }
+  };
+
+  return (
+    <Button variant="secondary" disabled={disabled} size="lg" onClick={handleCreateTask}>
+      <ListTodo className="h-3.5 w-3.5 flex-shrink-0" strokeWidth={2} />
+      <span className="text-body-xs-medium">Create task</span>
+    </Button>
+  );
 }
