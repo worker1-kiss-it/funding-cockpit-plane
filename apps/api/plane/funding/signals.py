@@ -71,7 +71,16 @@ def provision_funding_defaults(sender, instance, created, **kwargs):
         defaults={"role": 15, "created_by": user, "updated_by": user},
     )
 
-    # 3. Set board layout as default
+    # 3. Set board layout as default (excluding archived/rejected)
+    from plane.db.models.state import State
+
+    active_state_ids = list(
+        State.objects.filter(project=project, deleted_at__isnull=True)
+        .exclude(name__in=["Rejected", "Archived"])
+        .values_list("id", flat=True)
+    )
+    active_state_strs = [str(sid) for sid in active_state_ids]
+
     ProjectUserProperty.objects.get_or_create(
         user=user,
         project=project,
@@ -84,6 +93,9 @@ def provision_funding_defaults(sender, instance, created, **kwargs):
                 "type": None,
                 "sub_issue": True,
                 "show_empty_groups": True,
+            },
+            "filters": {
+                "state": active_state_strs,
             },
             "display_properties": {
                 "assignee": True,
