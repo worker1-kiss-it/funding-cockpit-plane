@@ -187,9 +187,9 @@ class Command(BaseCommand):
             # 1. Create users
             users = {}
             for email, display_name in [
-                ("g.kiss@kiss-it.io", "Gergely Kiss"),
-                ("r.hasan@kiss-it.io", "Rafi Hasan"),
-                ("shafi@mediprospects.ai", "Shafi Ahmed"),
+                ("g.kiss@kiss-it.io", "Gergo"),
+                ("r.hasan@kiss-it.io", "Raquibul"),
+                ("shafi@mediprospects.ai", "Shafi"),
             ]:
                 user, created = User.objects.get_or_create(
                     email=email,
