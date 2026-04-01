@@ -10,6 +10,7 @@ import { ProjectsAppPowerKProvider } from "@/components/power-k/projects-app-pro
 // plane web components
 import { ProjectAppSidebar } from "./_sidebar";
 import { ExtendedProjectSidebar } from "./extended-project-sidebar";
+import { FundingChat } from "@/plane-web/components/funding/chat";
 
 function WorkspaceLayout() {
   return (
@@ -25,6 +26,7 @@ function WorkspaceLayout() {
           </main>
         </div>
       </div>
+      <FundingChat />
     </>
   );
 }

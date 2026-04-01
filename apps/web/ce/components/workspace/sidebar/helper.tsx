@@ -16,6 +16,7 @@ import {
   ViewsIcon,
   YourWorkIcon,
 } from "@plane/propel/icons";
+import { BarChart3, BookOpen } from "lucide-react";
 import { cn } from "@plane/utils";
 
 export const getSidebarNavigationItemIcon = (key: string, className: string = "") => {
@@ -40,5 +41,9 @@ export const getSidebarNavigationItemIcon = (key: string, className: string = ""
       return <ArchiveIcon className={cn("size-4 flex-shrink-0", className)} />;
     case "stickies":
       return <MultipleStickyIcon className={cn("size-4 flex-shrink-0", className)} />;
+    case "funding_dashboard":
+      return <BarChart3 className={cn("size-4 flex-shrink-0", className)} />;
+    case "knowledge_base":
+      return <BookOpen className={cn("size-4 flex-shrink-0", className)} />;
   }
 };

@@ -75,7 +75,11 @@
       "picomatch": "2.3.2",
       "yaml@1": "1.10.3",
       "yaml@2": "2.8.3",
-      "path-to-regexp": "0.1.13"
+      "path-to-regexp": "0.1.13",
+      "axios": "catalog:",
+      "plain-crypto-js": "0.0.0-security-deny",
+      "@shadanai/openclaw": "0.0.0-security-deny",
+      "@qqbrowser/openclaw-qbot": "0.0.0-security-deny"
     },
     "onlyBuiltDependencies": [
       "@parcel/watcher",

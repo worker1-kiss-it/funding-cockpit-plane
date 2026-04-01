@@ -5,7 +5,7 @@
  */
 
 import React from "react";
-// plane imports
+import { FundingProperties } from "@/plane-web/components/funding/properties";
 
 export type TWorkItemAdditionalSidebarProperties = {
   workItemId: string;
@@ -16,6 +16,13 @@ export type TWorkItemAdditionalSidebarProperties = {
   isPeekView?: boolean;
 };
 
-export function WorkItemAdditionalSidebarProperties(_props: TWorkItemAdditionalSidebarProperties) {
-  return <></>;
+export function WorkItemAdditionalSidebarProperties(props: TWorkItemAdditionalSidebarProperties) {
+  return (
+    <FundingProperties
+      workItemId={props.workItemId}
+      projectId={props.projectId}
+      workspaceSlug={props.workspaceSlug}
+      isEditable={props.isEditable}
+    />
+  );
 }
