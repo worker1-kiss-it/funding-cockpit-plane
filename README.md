@@ -1,6 +1,6 @@
 # Funding Cockpit (Plane-Based)
 
-Central management platform for EU funding opportunities, built on top of [Plane](https://plane.so/) (open-source project management). Extends Plane with funding-specific models, a knowledge base, AI chat, partner/consortium management, and proposal tracking.
+Central management platform for EU funding opportunities, built on top of [Plane](https://plane.so/) (open-source project management). Extends Plane with funding-specific models, a knowledge base, AI chat, partner/consortium management, proposal tracking, and a two-project task workflow.
 
 ## Live URLs
 
@@ -20,12 +20,42 @@ Authentication is via **magic link** (email verification code) -- no passwords. 
 
 SMTP is configured via `smtp.easyname.eu` (sender: `worker1.kiss@kiss-it.io`).
 
+## Quick Start (What You See After Login)
+
+The app auto-redirects to the **EU Funding Pipeline board view** -- a kanban board with 12 pipeline columns showing all 160 opportunities. The sidebar shows:
+
+1. **Favorites** (expanded at top) -- quick links to key views:
+   - EU Funding Pipeline (board view)
+   - Deadline Calendar
+   - Active Opportunities
+   - High Priority
+   - Upcoming Deadlines
+   - Won Projects
+   - Spreadsheet Overview
+2. **Workspace** -- Funding Dashboard, Knowledge Base, Projects
+3. **Projects** (collapsed) -- EU Funding Pipeline, Funding Tasks
+
+## Two-Project Workflow
+
+| Project | Identifier | Purpose |
+|---------|-----------|---------|
+| **EU Funding Pipeline** | FUND | Opportunities only -- clean kanban pipeline board |
+| **Funding Tasks** | TASK | Action items, deliverables, to-dos linked to opportunities |
+
+**Why two projects?** Sub-work items in Plane appear as standalone cards on the board, cluttering the pipeline view. Keeping opportunities and tasks in separate projects keeps the pipeline clean while allowing full task management.
+
+**How to create a task for an opportunity:**
+1. Open any opportunity (e.g. FUND-146 GenAI-Cybersecure EU)
+2. Click **"Create task"** button (in the action bar next to "Add sub-work item", "Add relation", etc.)
+3. Enter a task name -- the task is created in the TASK project with an automatic `relates_to` relation back to the opportunity
+4. The relation is visible on both sides (opportunity shows linked tasks, task shows linked opportunity)
+
 ## Architecture
 
 ```
 nginx (ports 80/443, Let's Encrypt SSL)
-  -> Caddy reverse proxy (port 8800, internal)
-       -> web        (React/Next.js frontend, port 3000)
+  -> Caddy reverse proxy (port 8800, internal only)
+       -> web        (React frontend, port 3000)
        -> admin      (Admin dashboard, port 3000)
        -> space      (Public space, port 3000)
        -> api        (Django REST API, port 8000)
@@ -57,25 +87,79 @@ api -> OpenClaw     (AI chat gateway at 172.18.0.1:18789)
 
 | Feature | Old (FastAPI + Alpine.js) | New (Plane-Based) |
 |---------|--------------------------|-------------------|
-| **Pipeline/Kanban** | Custom 12-phase board | Plane's native board + custom 12 states |
-| **Calendar** | Custom calendar view | Plane's built-in calendar layout |
-| **Task Management** | None (opportunities only) | Full issues, subtasks, assignees, cycles, modules |
-| **Gantt/Timeline** | None | Plane's built-in timeline view |
-| **Spreadsheet View** | None | Plane's built-in spreadsheet layout |
-| **Knowledge Base** | Custom file tree browser | Mounted volume + custom API endpoints + Plane Pages |
-| **AI Chat** | WebSocket (OpenClaw) | REST API proxy (OpenClaw) |
-| **Activity Logging** | JSON activity_log field | Both Plane's native + FundingActivityLog model |
-| **Proposal Tracking** | None | Proposal model (draft -> review -> submitted -> accepted/rejected) |
-| **Partner Management** | None | Partner + ConsortiumMember models |
-| **Meeting Tracking** | None | Meeting model (internal, partner, info day, review, kickoff) |
-| **Implementation Milestones** | None | ImplementationMilestone model with deliverables |
+| **Pipeline/Kanban** | Custom 12-phase board | Plane native board + 12 custom states |
+| **Calendar** | Custom calendar view | Plane built-in calendar layout |
+| **Task Management** | None | Separate TASK project with linked tasks |
+| **Gantt/Timeline** | None | Plane built-in timeline view |
+| **Spreadsheet View** | None | Plane built-in spreadsheet layout |
+| **Knowledge Base** | Custom file tree browser | Custom KB browser page in Plane sidebar |
+| **AI Chat** | WebSocket sidebar | Dark-themed slide-out drawer with OpenClaw |
+| **Funding Dashboard** | Custom stats page | Custom dashboard page in Plane sidebar |
+| **Activity Logging** | JSON field | Plane native + FundingActivityLog model |
+| **Proposal Tracking** | None | Proposal model on issue detail sidebar |
+| **Partner Management** | None | Partner + ConsortiumMember on issue detail |
+| **Meeting Tracking** | None | Meeting model on issue detail sidebar |
+| **Implementation Milestones** | None | ImplementationMilestone on issue detail |
 | **Multi-Tenant** | Single tenant | Workspace isolation (one per company) |
-| **Real-time Collaboration** | None | Plane's live server (WebSocket) |
-| **File Attachments** | Linked docs (path refs) | MinIO storage + linked docs preserved |
-| **Search** | Full-text .md/.txt | Full-text .md/.txt + Plane's native search |
+| **Real-time Collaboration** | None | Plane live server (WebSocket) |
+| **File Attachments** | Linked doc paths | MinIO storage + linked docs preserved |
+| **Search** | Full-text .md/.txt | Full-text KB search + Plane native search |
 | **User Management** | Allowed emails list | Full RBAC (admin, member, guest) |
-| **Database** | JSON file (opportunities.json) | PostgreSQL |
-| **Deployment** | Single Docker container | 12 containers (docker-compose) |
+| **Saved Views / Quick Links** | None | Favorited views in sidebar (board, calendar, etc.) |
+| **Dark Mode** | Custom dark theme | Plane native dark mode (default) |
+| **Database** | JSON file | PostgreSQL |
+
+## Frontend Extensions (Plane UI)
+
+All custom frontend code uses Plane's CE (Community Edition) extension system, keeping customizations cleanly separated from core code.
+
+### Sidebar Navigation
+- **Funding Dashboard** -- stats cards, phase distribution, upcoming deadlines table
+- **Knowledge Base** -- file tree browser with 418 files, markdown rendering, PDF/image viewer, search
+
+Both are pinned in the sidebar under "Workspace" for all users.
+
+### Favorites (Quick Links)
+Pre-configured saved views favorited for all users, shown expanded at top of sidebar:
+- EU Funding Pipeline (project -- opens board view)
+- Deadline Calendar, Active Opportunities, High Priority, Upcoming Deadlines, Won Projects, Spreadsheet Overview
+
+### Issue Detail Sidebar -- Funding Properties
+When viewing any opportunity, the right sidebar shows additional funding fields:
+- Relevance (1-5 interactive star rating)
+- Budget, External ID, Opportunity Type, Source URL, Deadline
+- Fit Notes, Next Step
+- Collapsible sections: Linked Docs, Proposals, Consortium, Meetings, Milestones, Tasks
+
+### Issue Detail Action Bar -- "Create Task" Button
+A **"Create task"** button appears next to "Add sub-work item", "Add relation", "Add link", "Attach". Clicking it:
+1. Prompts for a task name
+2. Creates the task in the Funding Tasks (TASK) project
+3. Auto-creates a `relates_to` relation linking it to the opportunity
+4. Keeps the FUND pipeline board clean
+
+### AI Chat Drawer
+Floating chat button (bottom-right) on all pages. Opens a dark-themed slide-out drawer:
+- Loads chat history from OpenClaw
+- Send messages, receive AI responses
+- Solid dark background matching Plane's dark mode theme
+
+### Default User Experience
+- Dark mode enabled by default
+- Board layout (kanban) as default view for issues
+- Favorites expanded at top of sidebar
+- Projects section collapsed
+- Workspace home auto-redirects to the pipeline board view
+
+## New User Auto-Provisioning
+
+A Django signal (`post_save` on `WorkspaceMember`) automatically provisions defaults for any new user added to a workspace with a FUND project:
+- Profile created with onboarding skipped
+- Dark mode enabled
+- Board layout set as default
+- All saved views favorited
+- Funding Dashboard + Knowledge Base pinned in sidebar
+- Added as member to the FUND project
 
 ## Data Migrated
 
@@ -89,7 +173,7 @@ api -> OpenClaw     (AI chat gateway at 172.18.0.1:18789)
 | Labels | 13 normalized from 34 type variants | Horizon Europe, Cascade, Digital Europe, etc. |
 | Pipeline States | 12 | Backlog -> Discovery -> ... -> Won/Rejected/Archived |
 
-## Custom Funding Extension
+## Custom Funding Extension (Backend)
 
 Located in `apps/api/plane/funding/`. Registered in `INSTALLED_APPS` as `plane.funding`.
 
@@ -103,7 +187,7 @@ Located in `apps/api/plane/funding/`. Registered in `INSTALLED_APPS` as `plane.f
 - **Meeting** -- Meeting/call tracking per opportunity (internal, partner, info day, review, kickoff)
 - **ImplementationMilestone** -- Post-award deliverable tracking with status and due dates
 
-### API Endpoints (27 total)
+### API Endpoints (28 total)
 
 All under `/api/funding/`:
 
@@ -160,6 +244,11 @@ POST /workspaces/{slug}/projects/{id}/funding/chat/send/
 GET  /workspaces/{slug}/projects/{id}/funding/chat/history/
 ```
 
+**Linked Tasks:**
+```
+POST /workspaces/{slug}/projects/{id}/funding/create-task/{issue_id}/
+```
+
 ## Management Commands
 
 ```bash
@@ -178,7 +267,7 @@ python manage.py create_tenant --name "Company Name" --slug company-slug --admin
 
 ## Multi-Tenant
 
-Each company gets its own **Plane workspace** with full data isolation. Users can belong to multiple workspaces and switch between them via the workspace dropdown.
+Each company gets its own **Plane workspace** with full data isolation. Users can belong to multiple workspaces and switch between them via the workspace dropdown at the top-left.
 
 To add a second company:
 ```bash
@@ -186,7 +275,19 @@ docker compose -p funding-plane exec api python manage.py create_tenant \
   --name "Other Company" --slug other-company --admin user@other.com
 ```
 
-This creates a workspace with the standard 12-phase pipeline, type labels, and a "EU Funding Pipeline" project.
+This creates a workspace with the standard 12-phase pipeline, type labels, and a "EU Funding Pipeline" project. New users added to the workspace automatically get all defaults (dark mode, board layout, favorites) via the Django signal.
+
+To add a user to multiple workspaces:
+```bash
+docker compose -p funding-plane exec api python manage.py shell -c "
+from plane.db.models import User, Workspace, WorkspaceMember
+user = User.objects.get(email='user@example.com')
+ws = Workspace.objects.get(slug='other-company')
+WorkspaceMember.objects.get_or_create(workspace=ws, member=user, defaults={'role': 20})
+"
+```
+
+Roles are per-workspace: Admin (20), Member (15), Guest (5).
 
 ## Deployment
 
@@ -242,30 +343,63 @@ docker compose -p funding-plane exec api python manage.py import_opportunities
 
 ```
 apps/
-  api/                          # Django backend
+  api/                              # Django backend
     plane/
-      funding/                  # Custom funding extension
-        models.py               # FundingOpportunity, Proposal, Partner, etc.
-        views.py                # Pipeline, Dashboard, CRUD views
-        views_kb.py             # Knowledge Base file serving
-        views_chat.py           # AI Chat (OpenClaw proxy)
-        views_projects.py       # Projects view (_index.md parser)
-        serializers.py          # DRF serializers
-        urls.py                 # All funding API routes
+      funding/                      # Custom funding extension
+        apps.py                     # AppConfig with signal registration
+        models.py                   # FundingOpportunity, Proposal, Partner, etc.
+        signals.py                  # Auto-provision defaults for new users
+        views.py                    # Pipeline, Dashboard, CRUD, CreateLinkedTask
+        views_kb.py                 # Knowledge Base file serving
+        views_chat.py               # AI Chat (OpenClaw proxy)
+        views_projects.py           # Projects view (_index.md parser)
+        serializers.py              # DRF serializers
+        urls.py                     # All funding API routes (28 endpoints)
         management/commands/
-          seed_funding_data.py  # Initial data seeding
-          import_opportunities.py # Full production data import
-          create_tenant.py      # Multi-tenant workspace setup
+          seed_funding_data.py      # Initial data seeding
+          import_opportunities.py   # Full production data import
+          create_tenant.py          # Multi-tenant workspace setup
         migrations/
           0001_initial.py
           0002_fundingopportunity_linked_docs_and_more.py
-  web/                          # React frontend (Plane UI)
-  admin/                        # Admin dashboard
-  space/                        # Public sharing
-  live/                         # Real-time collaboration (WebSocket)
-  proxy/                        # Caddy reverse proxy
+  web/                              # React frontend (Plane UI)
+    core/
+      services/
+        funding.service.ts          # FundingService API client (all endpoints)
+    ce/
+      store/
+        funding/                    # MobX stores (dashboard, kb, chat, opportunity)
+        root.store.ts               # Extended with FundingStore
+      components/
+        funding/
+          dashboard/index.tsx       # Funding Dashboard page
+          kb/index.tsx              # Knowledge Base browser page
+          chat/index.tsx            # AI Chat floating drawer
+          properties/index.tsx      # Funding fields on issue detail sidebar
+        issues/
+          issue-details/
+            additional-properties.tsx  # Wires FundingProperties into sidebar
+          issue-detail-widgets/
+            action-buttons.tsx      # "Create task" button in action bar
+        workspace/sidebar/
+          helper.tsx                # Sidebar icons for funding items
+    app/
+      (all)/[workspaceSlug]/(projects)/
+        page.tsx                    # Auto-redirect to pipeline board
+        sidebar.tsx                 # Favorites moved to top
+        funding-dashboard/          # Dashboard route (layout + page)
+        knowledge-base/             # KB route (layout + page)
+      routes/
+        extended.ts                 # Funding routes registration
+  admin/                            # Admin dashboard
+  space/                            # Public sharing
+  live/                             # Real-time collaboration (WebSocket)
+  proxy/                            # Caddy reverse proxy
+packages/
+  constants/src/workspace.ts        # Sidebar nav items (funding_dashboard, knowledge_base)
+  i18n/src/locales/en/translations.ts  # Labels for sidebar items
 ```
 
 ## Based On
 
-[Plane](https://github.com/makeplane/plane) -- AGPL-3.0 licensed open-source project management.
+[Plane](https://github.com/makeplane/plane) -- AGPL-3.0 licensed open-source project management (~209K lines of code, ~144 contributors, est. 40-60K developer hours).
