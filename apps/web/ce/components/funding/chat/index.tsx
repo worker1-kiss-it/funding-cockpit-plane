@@ -64,12 +64,12 @@ export const FundingChat = observer(function FundingChat() {
 
       {/* Chat Drawer */}
       {isOpen && (
-        <div className="fixed right-0 top-0 h-full w-96 z-40 bg-custom-background-100 border-l border-custom-border-200 shadow-2xl flex flex-col">
+        <div className="fixed right-0 top-0 h-full w-96 z-[60] border-l shadow-2xl flex flex-col" style={{ backgroundColor: "rgb(var(--color-background-100, 255 255 255))", borderColor: "rgb(var(--color-border-200, 229 231 235))" }}>
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-custom-border-200">
+          <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: "rgb(var(--color-border-200, 229 231 235))" }}>
             <div className="flex items-center gap-2">
               <Bot className="size-5 text-custom-primary-100" />
-              <h3 className="font-medium">AI Assistant</h3>
+              <h3 className="font-medium text-custom-text-100">AI Assistant</h3>
             </div>
             <button onClick={() => setIsOpen(false)} className="text-custom-text-300 hover:text-custom-text-100">
               <X className="size-4" />
@@ -77,7 +77,7 @@ export const FundingChat = observer(function FundingChat() {
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-auto p-4 space-y-4">
+          <div className="flex-1 overflow-auto p-4 space-y-4" style={{ backgroundColor: "rgb(var(--color-background-100, 255 255 255))" }}>
             {messages.length === 0 && (
               <div className="text-center py-12 text-custom-text-300 text-sm">
                 <Bot className="size-8 mx-auto mb-3 opacity-30" />
@@ -94,8 +94,8 @@ export const FundingChat = observer(function FundingChat() {
                     ? "bg-custom-primary-100 text-white"
                     : msg.role === "system"
                     ? "bg-red-500/10 text-red-500"
-                    : "bg-custom-background-90 text-custom-text-100"
-                }`}>
+                    : "text-custom-text-100"
+                }`} style={msg.role !== "user" && msg.role !== "system" ? { backgroundColor: "rgb(var(--color-background-90, 243 244 246))" } : undefined}>
                   <div className="whitespace-pre-wrap">{msg.content}</div>
                 </div>
                 {msg.role === "user" && (
@@ -115,14 +115,15 @@ export const FundingChat = observer(function FundingChat() {
           </div>
 
           {/* Input */}
-          <div className="p-3 border-t border-custom-border-200">
+          <div className="p-3 border-t" style={{ borderColor: "rgb(var(--color-border-200, 229 231 235))", backgroundColor: "rgb(var(--color-background-100, 255 255 255))" }}>
             <div className="flex items-center gap-2">
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
                 placeholder="Type a message..."
-                className="flex-1 bg-custom-background-90 rounded-md px-3 py-2 text-sm outline-none text-custom-text-100 placeholder:text-custom-text-400"
+                className="flex-1 rounded-md px-3 py-2 text-sm outline-none text-custom-text-100 placeholder:text-custom-text-400"
+                style={{ backgroundColor: "rgb(var(--color-background-90, 243 244 246))" }}
                 disabled={isLoading}
               />
               <button
