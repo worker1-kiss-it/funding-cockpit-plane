@@ -160,6 +160,13 @@ export class FundingService extends APIService {
       .catch((err) => { throw err?.response?.data; });
   }
 
+  // Create linked task in TASK project
+  async createLinkedTask(workspaceSlug: string, projectId: string, issueId: string, data: any): Promise<any> {
+    return this.post(this.fundingUrl(workspaceSlug, projectId, `create-task/${issueId}/`), data)
+      .then((res) => res?.data)
+      .catch((err) => { throw err?.response?.data; });
+  }
+
   // AI Chat
   async sendChatMessage(workspaceSlug: string, projectId: string, message: string): Promise<any> {
     return this.post(this.fundingUrl(workspaceSlug, projectId, "chat/send/"), { message })

@@ -15,6 +15,7 @@ from .views import (
     MeetingDetailView,
     MilestoneListCreateView,
     MilestoneDetailView,
+    CreateLinkedTaskView,
 )
 from .views_kb import KBTreeView, KBFileView, KBSearchView, KBRawFileView
 from .views_chat import ChatSendView, ChatHistoryView
@@ -135,5 +136,11 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/funding/kb/projects/",
         FundingProjectsView.as_view(),
         name="funding-projects",
+    ),
+    # Create linked task
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/funding/create-task/<uuid:issue_id>/",
+        CreateLinkedTaskView.as_view(),
+        name="funding-create-task",
     ),
 ]

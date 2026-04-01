@@ -9,6 +9,7 @@ from rest_framework.response import Response
 
 from plane.app.views.base import BaseAPIView
 from plane.db.models import Issue, State, Project, Workspace
+from plane.db.models.issue import IssueRelation, IssueAssignee
 
 from .models import (
     FundingOpportunity,
@@ -537,3 +538,108 @@ class MilestoneDetailView(BaseAPIView):
             )
         milestone.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# ---------------------------------------------------------------------------
+# Create Task in TASK Project with Relation to Opportunity
+# ---------------------------------------------------------------------------
+
+
+class CreateLinkedTaskView(BaseAPIView):
+    """Create a task in the TASK project and link it to an opportunity issue."""
+
+    def post(self, request, slug, project_id, issue_id):
+        workspace = Workspace.objects.get(slug=slug)
+        source_issue = Issue.objects.filter(
+            pk=issue_id, project_id=project_id, workspace=workspace
+        ).first()
+        if not source_issue:
+            return Response(
+                {"error": "Issue not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Find TASK project
+        task_project = Project.objects.filter(
+            workspace=workspace, identifier="TASK"
+        ).first()
+        if not task_project:
+            return Response(
+                {"error": "TASK project not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        name = request.data.get("name", "").strip()
+        if not name:
+            return Response(
+                {"error": "name is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Get default state for TASK project
+        default_state = (
+            State.objects.filter(
+                project=task_project, default=True, deleted_at__isnull=True
+            ).first()
+            or State.objects.filter(
+                project=task_project, deleted_at__isnull=True
+            )
+            .order_by("sequence")
+            .first()
+        )
+
+        user = request.user
+        priority = request.data.get("priority", "medium")
+        target_date = request.data.get("target_date")
+
+        # Create the task issue
+        task_issue = Issue.objects.create(
+            project=task_project,
+            workspace=workspace,
+            name=name,
+            description_html=request.data.get(
+                "description_html",
+                f"<p>Task for <strong>{source_issue.name}</strong></p>",
+            ),
+            state=default_state,
+            priority=priority,
+            target_date=target_date,
+            created_by=user,
+            updated_by=user,
+        )
+
+        # Assign if specified
+        assignee_id = request.data.get("assignee_id")
+        if assignee_id:
+            IssueAssignee.objects.create(
+                issue=task_issue,
+                assignee_id=assignee_id,
+                project=task_project,
+                workspace=workspace,
+                created_by=user,
+                updated_by=user,
+            )
+
+        # Create relation: task relates_to opportunity
+        IssueRelation.objects.create(
+            issue=task_issue,
+            related_issue=source_issue,
+            relation_type="relates_to",
+            project=task_project,
+            workspace=workspace,
+            created_by=user,
+            updated_by=user,
+        )
+
+        return Response(
+            {
+                "id": str(task_issue.id),
+                "name": task_issue.name,
+                "identifier": f"TASK-{task_issue.sequence_id}",
+                "priority": task_issue.priority,
+                "target_date": str(task_issue.target_date) if task_issue.target_date else None,
+                "relation": "relates_to",
+                "related_to": str(source_issue.id),
+            },
+            status=status.HTTP_201_CREATED,
+        )

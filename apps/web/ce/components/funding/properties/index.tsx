@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { observer } from "mobx-react";
 import {
   Star, ExternalLink, FileText, ChevronDown, Plus, Calendar,
-  Users, FileCheck, Milestone, Trash2, Clock
+  Users, FileCheck, Milestone, Trash2, Clock, ListTodo, ArrowUpRight
 } from "lucide-react";
 import { FundingService } from "@/services/funding.service";
 
@@ -103,6 +103,18 @@ export const FundingProperties = observer(function FundingProperties({
         title, status: "pending",
       });
       setMilestones((prev) => [...prev, created]);
+    } catch { /* silently fail */ }
+  };
+
+  const [linkedTasks, setLinkedTasks] = useState<any[]>([]);
+
+  const createLinkedTask = async () => {
+    if (!workItemId) return;
+    const name = prompt("Task name:");
+    if (!name) return;
+    try {
+      const created = await service.createLinkedTask(workspaceSlug, projectId, workItemId, { name });
+      setLinkedTasks((prev) => [...prev, created]);
     } catch { /* silently fail */ }
   };
 
@@ -272,6 +284,32 @@ export const FundingProperties = observer(function FundingProperties({
           <button onClick={addMilestone} className="flex items-center gap-1 text-xs text-custom-primary-100 hover:underline">
             <Plus className="size-3" /> Add milestone
           </button>
+        )}
+      </Section>
+
+      {/* Linked Tasks (in TASK project) */}
+      <Section title="Tasks" icon={ListTodo} count={linkedTasks.length} defaultOpen>
+        {linkedTasks.map((t: any) => (
+          <div key={t.id} className="flex items-center justify-between py-1 px-2 rounded bg-custom-background-90 text-xs">
+            <div className="truncate flex-1">
+              <span className="font-mono text-custom-text-400 mr-1">{t.identifier}</span>
+              <span className="font-medium">{t.name}</span>
+            </div>
+            <a
+              href={`/${workspaceSlug}/projects/${t.id}/issues/`}
+              className="text-custom-primary-100 hover:underline ml-1"
+            >
+              <ArrowUpRight className="size-3" />
+            </a>
+          </div>
+        ))}
+        {isEditable && (
+          <button onClick={createLinkedTask} className="flex items-center gap-1 text-xs text-custom-primary-100 hover:underline">
+            <Plus className="size-3" /> Create task
+          </button>
+        )}
+        {linkedTasks.length === 0 && !isEditable && (
+          <div className="text-xs text-custom-text-400">No linked tasks</div>
         )}
       </Section>
     </div>
