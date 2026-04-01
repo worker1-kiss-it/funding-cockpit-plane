@@ -28,6 +28,7 @@ from plane.db.models import (
     IssueAssignee,
     IssueLabel,
 )
+from plane.db.models.user import Profile
 from plane.funding.models import FundingOpportunity, FundingActivityLog
 
 
@@ -206,6 +207,23 @@ class Command(BaseCommand):
                 users[email] = user
 
             admin_user = users["g.kiss@kiss-it.io"]
+
+            # 1b. Create profiles (skip onboarding/profile setup screen)
+            for email, user in users.items():
+                Profile.objects.get_or_create(
+                    user=user,
+                    defaults={
+                        "is_onboarded": True,
+                        "is_tour_completed": True,
+                        "is_navigation_tour_completed": True,
+                        "onboarding_step": {
+                            "profile_complete": True,
+                            "workspace_create": True,
+                            "workspace_invite": True,
+                            "workspace_join": True,
+                        },
+                    },
+                )
 
             # 2. Create workspace
             workspace, created = Workspace.objects.get_or_create(
