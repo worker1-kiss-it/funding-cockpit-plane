@@ -147,6 +147,8 @@ export default {
   views: "Views",
   workspace: "Workspace",
   archives: "Archives",
+  funding_dashboard: "Funding Dashboard",
+  knowledge_base: "Knowledge Base",
   settings: "Settings",
   failed_to_move_favorite: "Failed to move favorite",
   favorites: "Favorites",
