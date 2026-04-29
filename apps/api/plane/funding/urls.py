@@ -17,8 +17,14 @@ from .views import (
     MilestoneDetailView,
     CreateLinkedTaskView,
 )
-from .views_kb import KBTreeView, KBFileView, KBSearchView, KBRawFileView
-from .views_chat import ChatSendView, ChatHistoryView
+from .views_kb import (
+    KBTreeView,
+    KBFileView,
+    KBSearchView,
+    KBRawFileView,
+    KBDownloadZipView,
+)
+from .chat.views import ChatSessionsView, ChatMessagesView
 from .views_projects import FundingProjectsView
 
 urlpatterns = [
@@ -120,16 +126,21 @@ urlpatterns = [
         KBSearchView.as_view(),
         name="funding-kb-search",
     ),
-    # AI Chat
     path(
-        "workspaces/<str:slug>/projects/<uuid:project_id>/funding/chat/send/",
-        ChatSendView.as_view(),
-        name="funding-chat-send",
+        "workspaces/<str:slug>/projects/<uuid:project_id>/funding/<uuid:opp_id>/kb/download-zip/",
+        KBDownloadZipView.as_view(),
+        name="funding-kb-download-zip",
+    ),
+    # AI Chat (claude CLI backed)
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/funding/chat/sessions/",
+        ChatSessionsView.as_view(),
+        name="funding-chat-sessions",
     ),
     path(
-        "workspaces/<str:slug>/projects/<uuid:project_id>/funding/chat/history/",
-        ChatHistoryView.as_view(),
-        name="funding-chat-history",
+        "workspaces/<str:slug>/projects/<uuid:project_id>/funding/chat/sessions/<uuid:session_id>/messages/",
+        ChatMessagesView.as_view(),
+        name="funding-chat-messages",
     ),
     # Projects (from KB _index.md files)
     path(
