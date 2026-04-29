@@ -84,6 +84,8 @@ package-lock.json
 
 .secrets
 tmp/
+backups/
+.env.production
 
 ## packages
 dist

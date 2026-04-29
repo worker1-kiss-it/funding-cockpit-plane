@@ -223,6 +223,78 @@ class Meeting(BaseModel):
         return f"{self.title} ({self.date.strftime('%Y-%m-%d')})"
 
 
+class FundingChatSession(BaseModel):
+    """A persistent AI chat session for a (workspace, user) pair.
+
+    The ``claude_session_id`` is the UUID we pass to ``claude --session-id``
+    on first turn and ``claude --resume`` on every follow-up. Conversation
+    state proper lives on disk in the api container under
+    ``/root/.claude/projects/<hash>/<id>/`` (mounted from the ``claude_sessions``
+    docker volume so it survives restarts). The ChatMessage rows below are the
+    user-facing, searchable, immutable log of the conversation.
+    """
+
+    workspace = models.ForeignKey(
+        "db.Workspace",
+        on_delete=models.CASCADE,
+        related_name="funding_chat_sessions",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="funding_chat_sessions",
+    )
+    claude_session_id = models.UUIDField(default=uuid.uuid4, unique=True)
+    title = models.CharField(max_length=200, blank=True, default="")
+
+    class Meta:
+        db_table = "funding_chat_sessions"
+        ordering = ["-updated_at"]
+        verbose_name = "Funding Chat Session"
+        verbose_name_plural = "Funding Chat Sessions"
+
+    def __str__(self):
+        return f"{self.user_id} / {self.title or self.claude_session_id}"
+
+
+class FundingChatMessage(BaseModel):
+    """One message in a FundingChatSession (user, assistant, system, or tool)."""
+
+    ROLE_CHOICES = [
+        ("user", "User"),
+        ("assistant", "Assistant"),
+        ("system", "System"),
+        ("tool", "Tool"),
+    ]
+
+    session = models.ForeignKey(
+        FundingChatSession,
+        on_delete=models.CASCADE,
+        related_name="messages",
+    )
+    role = models.CharField(max_length=16, choices=ROLE_CHOICES)
+    content = models.TextField()
+    tokens_in = models.IntegerField(null=True, blank=True)
+    tokens_out = models.IntegerField(null=True, blank=True)
+    cost_usd = models.DecimalField(
+        max_digits=10, decimal_places=6, null=True, blank=True
+    )
+    raw = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="Raw stream-json events from the claude CLI for debugging",
+    )
+
+    class Meta:
+        db_table = "funding_chat_messages"
+        ordering = ["created_at"]
+        verbose_name = "Funding Chat Message"
+        verbose_name_plural = "Funding Chat Messages"
+
+    def __str__(self):
+        return f"[{self.role}] {self.content[:60]}"
+
+
 class ImplementationMilestone(BaseModel):
     """Track post-award implementation milestones for won opportunities."""
 

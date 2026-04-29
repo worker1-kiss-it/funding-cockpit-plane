@@ -47,8 +47,12 @@ services:
       - ./apps/api/.env
     environment:
       KB_PATH: /app/kb
+      PAGES_CACHE_PATH: /app/pages-cache
     volumes:
       - /git/funding-cockpit/kb:/app/kb:ro
+      - /srv/funding-cockpit/pages-cache:/app/pages-cache
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - plane-db
       - plane-redis
@@ -64,6 +68,14 @@ services:
     command: ./bin/docker-entrypoint-worker.sh
     env_file:
       - ./apps/api/.env
+    environment:
+      KB_PATH: /app/kb
+      PAGES_CACHE_PATH: /app/pages-cache
+    volumes:
+      - /git/funding-cockpit/kb:/app/kb:ro
+      - /srv/funding-cockpit/pages-cache:/app/pages-cache
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - api
       - plane-db
@@ -80,6 +92,10 @@ services:
     command: ./bin/docker-entrypoint-beat.sh
     env_file:
       - ./apps/api/.env
+    environment:
+      PAGES_CACHE_PATH: /app/pages-cache
+    volumes:
+      - /srv/funding-cockpit/pages-cache:/app/pages-cache
     depends_on:
       - api
       - plane-db
@@ -111,7 +127,7 @@ services:
     environment:
       API_BASE_URL: "http://api:8000"
       LIVE_BASE_PATH: "/live"
-      LIVE_SERVER_SECRET_KEY: "REDACTED"
+      LIVE_SERVER_SECRET_KEY: ${LIVE_SERVER_SECRET_KEY:?LIVE_SERVER_SECRET_KEY must be set in .env}
       REDIS_URL: "redis://plane-redis:6379/"
     depends_on:
       - plane-redis
@@ -153,7 +169,7 @@ services:
 
   plane-minio:
     container_name: plane-minio
-    image: minio/minio
+    image: minio/minio:RELEASE.2025-02-07T23-21-09Z
     restart: always
     command: server /export --console-address ":9090"
     volumes:

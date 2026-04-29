@@ -18,6 +18,11 @@ RUN apk add --no-cache --upgrade \
     "ca-certificates" \
     "openssl"
 
+# NOTE: the funding chat backend does NOT bundle the claude CLI here. It
+# talks over HTTP to a host-side claude-exec-server (see CLAUDE_EXEC_URL in
+# apps/api/.env) that runs as the OAuth-authenticated clauderunner user.
+# This keeps the api image lean and avoids shipping an Anthropic API key.
+
 COPY requirements.txt ./
 COPY requirements ./requirements
 RUN apk add --no-cache libffi-dev

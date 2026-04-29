@@ -63,13 +63,21 @@ def provision_funding_defaults(sender, instance, created, **kwargs):
         profile.last_workspace_id = workspace.id
         profile.save()
 
-    # 2. Add as project member
+    # 2. Add as project member to FUND and (if it exists) KB
     ProjectMember.objects.get_or_create(
         project=project,
         member=user,
         workspace=workspace,
         defaults={"role": 15, "created_by": user, "updated_by": user},
     )
+    kb_project = Project.objects.filter(workspace=workspace, identifier="KB").first()
+    if kb_project:
+        ProjectMember.objects.get_or_create(
+            project=kb_project,
+            member=user,
+            workspace=workspace,
+            defaults={"role": 15, "created_by": user, "updated_by": user},
+        )
 
     # 3. Set board layout as default (excluding archived/rejected)
     from plane.db.models.state import State

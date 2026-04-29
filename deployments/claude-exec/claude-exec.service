@@ -1,0 +1,29 @@
+[Unit]
+Description=Claude Exec Server (HTTP wrapper around claude CLI for Funding Cockpit)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/clauderunner/claude-exec-server
+Environment=CLAUDE_EXEC_HOST=0.0.0.0
+Environment=CLAUDE_EXEC_PORT=5557
+Environment=CLAUDE_EXEC_TOKEN_FILE=/home/clauderunner/claude-exec-server/token
+Environment=CLAUDE_TIMEOUT_SECONDS=180
+Environment=CLAUDE_MAX_CONCURRENCY=4
+Environment=CLAUDE_MODEL=claude-sonnet-4-6
+Environment=CLAUDE_ALLOWED_DIRS=/git/funding-cockpit/kb,/srv/funding-cockpit/pages-cache
+ExecStart=/home/clauderunner/claude-exec-server/venv/bin/python /home/clauderunner/claude-exec-server/server.py
+Restart=on-failure
+RestartSec=3
+StandardOutput=append:/home/clauderunner/claude-exec-server/server.log
+StandardError=append:/home/clauderunner/claude-exec-server/server.log
+
+# Light hardening compatible with user systemd. The system unit version in
+# deployments/claude-exec/claude-exec.system.service adds the kernel-level
+# protections that require root.
+NoNewPrivileges=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=default.target
